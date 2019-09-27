@@ -9,8 +9,11 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.aispeech.dui.dds.DDS;
+import com.aispeech.dui.dds.DDSAuthListener;
+import com.aispeech.dui.dds.DDSInitListener;
 import com.aispeech.dui.dds.exceptions.DDSNotInitCompleteException;
 
 /**
@@ -22,47 +25,59 @@ import com.aispeech.dui.dds.exceptions.DDSNotInitCompleteException;
  */
 public class AuthService {
 
-    private static final String AUTH_SUCCESS_INTENT = "ddsdemo.intent.action.auth_success";
-    private static final String AUTH_FAIL_INTENT = "ddsdemo.intent.action.auth_failed";
+    private static final String TAG = AuthService.class.getName();
+    private Handler mAuthHandler;
 
-    private Looper mLooper;
-    private Context mContext;
-    public AuthService(Context context, Looper looper){
-        mLooper = looper;
-        mContext = context;
-        mAuthHandler = new AuthHandler(mLooper);
+    public AuthService(Context context,Handler handler) {
+        mAuthHandler = handler;
+        initDDS(context);
     }
 
-    private void registerAuthBroadcast(){
-        // 注册一个广播,接收service中发送的dds初始状态广播
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(AUTH_SUCCESS_INTENT);// 认证成功的广播
-        intentFilter.addAction(AUTH_FAIL_INTENT);// 认证失败的广播
-        mContext.registerReceiver(authReceiver, intentFilter);
+    public void initDDS(Context context) {
+        DDS.getInstance().setDebugMode(2); //在调试时可以打开sdk调试日志，在发布版本时，请关闭
+        DDS.getInstance().init(context, SpeechConfig.createConfig(context), mInitListener, mAuthListener);
     }
 
-    private void unregisterAuthBroadcast(){
-        mContext.unregisterReceiver(authReceiver);
-    }
-
-    public void startAuth(){
-        mAuthHandler.sendEmptyMessage(AUTH_DO);
-    }
-
-    // 认证广播
-    private BroadcastReceiver authReceiver = new BroadcastReceiver() {
+    // dds初始状态监听器,监听init是否成功
+    private DDSInitListener mInitListener = new DDSInitListener() {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            if (TextUtils.equals(intent.getAction(), AUTH_SUCCESS_INTENT)) {
-                // 鉴权成功
-            } else if (TextUtils.equals(intent.getAction(), AUTH_FAIL_INTENT)) {
-                mAuthHandler.sendEmptyMessage(AUTH_FAIL);
+        public void onInitComplete(boolean isFull) {
+            Log.d(TAG, "onInitComplete");
+            if (isFull) {
+                //  初始化成功后,可以开始唤醒思必驰服务
+                mAuthHandler.sendEmptyMessage(HandlerState.DDS_INIT_OK);
             }
+        }
+
+        @Override
+        public void onError(int what, final String msg) {
+            Log.e(TAG, "Init onError: " + what + ", error: " + msg);
+            mAuthHandler.sendEmptyMessage(HandlerState.DDS_INIT_FAIL);
         }
     };
 
+    // dds认证状态监听器,监听auth是否成功
+    private DDSAuthListener mAuthListener = new DDSAuthListener() {
+        @Override
+        public void onAuthSuccess() {
+            // 发送一个认证成功的广播
+            mAuthHandler.sendEmptyMessage(HandlerState.AUTH_OK);
+        }
+
+        @Override
+        public void onAuthFailed(final String errId, final String error) {
+            Log.e(TAG, "onAuthFailed: " + errId + ", error:" + error);
+            // 发送一个认证失败的广播
+            mAuthHandler.sendEmptyMessage(HandlerState.AUTH_FAIL);
+        }
+    };
+
+    public void startAuth() {
+        doAutoAuth();
+    }
+
     // 执行自动授权
-    private void doAutoAuth(){
+    private void doAutoAuth() {
         // 自动执行授权5次,如果5次授权失败之后,给用户弹提示框
         try {
             DDS.getInstance().doAuth();
@@ -70,34 +85,5 @@ public class AuthService {
             e.printStackTrace();
         }
     }
-
-    private static final int AUTH_DO = 1000;
-    private static final int AUTH_FAIL = 1001;
-    private AuthHandler mAuthHandler;
-    private class AuthHandler extends Handler{
-        public AuthHandler(Looper looper) {
-            super(looper);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            int action = msg.what;
-
-            switch (action){
-                case AUTH_DO:
-                    doAutoAuth();
-                    break;
-                case AUTH_FAIL:
-                    // 如果失败,5s以后重新鉴权
-                    mAuthHandler.sendEmptyMessageAtTime(AUTH_DO,5000);
-                    break;
-                    default:
-                        break;
-            }
-
-        }
-    }
-
 
 }
