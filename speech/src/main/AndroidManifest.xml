@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="pumpkin.org.speech">
+
+    <application>
+        <service
+            android:name=".SpeechService"
+            android:enabled="true"
+            android:exported="true"></service>
+    </application>
+
+</manifest>
