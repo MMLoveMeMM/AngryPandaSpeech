@@ -36,6 +36,11 @@ public class SpeechConfig {
         config.addConfig(DDSConfig.K_PRODUCT_KEY, "f51edbf74a8a3bf64083ca9717c3bc76");// Product Key -- 必填
         config.addConfig(DDSConfig.K_PRODUCT_SECRET, "987181c998312a3ceb46d725aa0e47cb");// Product Secre -- 必填
         config.addConfig(DDSConfig.K_API_KEY, "a3a245091cc3a3a245091cc35cc7fab3");  // 产品授权秘钥，服务端生成，用于产品授权 -- 必填
+
+        // config.addConfig(DDSConfig.K_PRODUCT_KEY, " 1f6080d2f5b6d971dd81ae977bb2755e ");// Product Key -- 必填
+        // config.addConfig(DDSConfig.K_PRODUCT_SECRET, " da9a8055b120ed30bd628fa44903ba5f");// Product Secre -- 必填
+        // config.addConfig(DDSConfig.K_API_KEY, "还在申请");  // 产品授权秘钥，服务端生成，用于产品授权 -- 必填
+
         config.addConfig(DDSConfig.K_DEVICE_ID, getDeviceId(context));//填入唯一的deviceId -- 选填
 
         // 更多高级配置项,请参考文档: https://www.dui.ai/docs/ct_common_Andriod_SDK 中的 --> 四.高级配置项

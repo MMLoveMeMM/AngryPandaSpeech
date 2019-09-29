@@ -9,6 +9,7 @@ package pumpkin.org.speech;
  */
 public class HandlerState {
 
+    public static final int DDS_KEYAPI_INVALID = -1;
     public static final int AUTH_DO = 1;
     public static final int AUTH_OK = 2;
     public static final int AUTH_FAIL = 3;

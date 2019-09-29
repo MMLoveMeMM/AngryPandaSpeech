@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Speech</string>
+    <string name="sayhi1">Hi，你现在可以说 \"%1$s\" 来唤醒我</string>
+    <string name="sayhi2">Hi，你现在可以说 \"%1$s\" 或 \"%2$s\" 来唤醒我</string>
 </resources>

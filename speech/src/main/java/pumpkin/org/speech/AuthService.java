@@ -27,10 +27,12 @@ public class AuthService {
 
     private static final String TAG = AuthService.class.getName();
     private Handler mAuthHandler;
+    private Context mContext;
 
-    public AuthService(Context context,Handler handler) {
+    public AuthService(Context context, Handler handler) {
         mAuthHandler = handler;
         initDDS(context);
+        mContext = context;
     }
 
     public void initDDS(Context context) {
@@ -45,7 +47,12 @@ public class AuthService {
             Log.d(TAG, "onInitComplete");
             if (isFull) {
                 //  初始化成功后,可以开始唤醒思必驰服务
-                mAuthHandler.sendEmptyMessage(HandlerState.DDS_INIT_OK);
+                if (checkDDSReady()) {
+                    mAuthHandler.sendEmptyMessage(HandlerState.DDS_INIT_OK);
+                } else {
+                    // 重新开始鉴权
+                    mAuthHandler.sendEmptyMessage(HandlerState.DDS_INIT_FAIL);
+                }
             }
         }
 
@@ -68,7 +75,15 @@ public class AuthService {
         public void onAuthFailed(final String errId, final String error) {
             Log.e(TAG, "onAuthFailed: " + errId + ", error:" + error);
             // 发送一个认证失败的广播
-            mAuthHandler.sendEmptyMessage(HandlerState.AUTH_FAIL);
+            if (errId.equalsIgnoreCase("070603")) {
+                /**
+                 * key值配错了,直接停止鉴权
+                 */
+                Log.e(TAG, "reset keyapi serial !");
+                mAuthHandler.sendEmptyMessage(HandlerState.DDS_KEYAPI_INVALID);
+            } else {
+                mAuthHandler.sendEmptyMessage(HandlerState.AUTH_FAIL);
+            }
         }
     };
 
@@ -84,6 +99,39 @@ public class AuthService {
         } catch (DDSNotInitCompleteException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 检查dds是否初始成功
+     *
+     * @return
+     */
+    public boolean checkDDSReady() {
+
+        try {
+            Thread.sleep(800);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (DDS.getInstance().getInitStatus() == DDS.INIT_COMPLETE_FULL ||
+                DDS.getInstance().getInitStatus() == DDS.INIT_COMPLETE_NOT_FULL) {
+            try {
+                if (DDS.getInstance().isAuthSuccess()) {
+                    return true;
+                } else {
+                    // 自动授权
+                    return false;
+                }
+            } catch (DDSNotInitCompleteException e) {
+                e.printStackTrace();
+            }
+            return false;
+        } else {
+            Log.w(TAG, "waiting  init complete finish...");
+            return false;
+        }
+
     }
 
 }
